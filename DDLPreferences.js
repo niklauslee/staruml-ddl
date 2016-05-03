@@ -29,6 +29,22 @@ define(function (require, exports, module) {
             text: "DDL Generation",
             type: "Section"
         },
+        "ddl.gen.fileExtension": {
+            text: "DDL File Extension",
+            description: "DDL File Extension",
+            type: "Dropdown",
+            options: [
+                { value: ".sql", text: ".sql" },
+                { value: ".ddl", text: ".ddl" }
+            ],
+            default: ".sql"
+        },
+        "ddl.gen.quoteIdentifiers": {
+            text: "Quote Identifiers",
+            description: "Quote identifiers",
+            type: "Check",
+            default: true
+        },
         "ddl.gen.useTab": {
             text: "Use Tab",
             description: "Use Tab for indentation instead of spaces.",
@@ -49,8 +65,10 @@ define(function (require, exports, module) {
 
     function getGenOptions() {
         return {
-            useTab       : PreferenceManager.get("ddl.gen.useTab"),
-            indentSpaces : PreferenceManager.get("ddl.gen.indentSpaces")
+            fileExtension    : PreferenceManager.get("ddl.gen.fileExtension"),
+            quoteIdentifiers : PreferenceManager.get("ddl.gen.quoteIdentifiers"),
+            useTab           : PreferenceManager.get("ddl.gen.useTab"),
+            indentSpaces     : PreferenceManager.get("ddl.gen.indentSpaces")
         };
     }
 

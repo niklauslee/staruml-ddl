@@ -70,6 +70,159 @@ define(function (require, exports, module) {
     };
 
     /**
+     * Return Identifier (Quote or not)
+     * @param {String} id
+     * @param {Object} options
+     */
+    DDLGenerator.prototype.getId = function (id, options) {
+        if (options.quoteIdentifiers) {
+            return "`" + id + "`";
+        }
+        return id;
+    };
+
+    /**
+     * Return Primary Keys for an Entity
+     * @param {type.ERDEntity} elem
+     * @return {Array.<ERDColumn>}
+     */
+    DDLGenerator.prototype.getPrimaryKeys = function (elem) {
+        var keys = [];
+        elem.columns.forEach(function (col) {
+            if (col.primaryKey) {
+                keys.push(col);
+            }
+        });
+        return keys;
+    };
+
+    /**
+     * Return Foreign Keys for an Entity
+     * @param {type.ERDEntity} elem
+     * @return {Array.<ERDColumn>}
+     */
+    DDLGenerator.prototype.getForeignKeys = function (elem) {
+        var keys = [];
+        elem.columns.forEach(function (col) {
+            if (col.foreignKey) {
+                keys.push(col);
+            }
+        });
+        return keys;
+    };
+    
+    /**
+     * Return DDL column string
+     * @param {type.ERDColumn} elem
+     * @param {Object} options
+     * @return {String}
+     */
+    DDLGenerator.prototype.getColumnString = function (elem, options) {
+        var self = this;
+        var line = self.getId(elem.name, options) + " " + elem.getTypeString();
+        if (elem.primaryKey || !elem.nullable) {
+            line += " NOT NULL";
+        }
+        return line;
+    };
+
+    /**
+     * Generate Foreign Keys
+     * @param {Array.<String>} lines
+     * @param {type.ERDEntity} elem
+     * @param {Object} options
+     */
+    DDLGenerator.prototype.generateForeignKeys = function (lines, elem, options) {
+        var self = this,
+            fks  = self.getForeignKeys(elem),
+            ends = elem.getRelationshipEnds(true);
+        
+        ends.forEach(function (end) {
+            if (end.cardinality === "1") {
+                var _pks = self.getPrimaryKeys(end.reference);
+                var matched = true,
+                    matchedFKs = [];
+                _pks.forEach(function (pk) {
+                    var r = _.find(fks, function (k) { return k.referenceTo === pk; });
+                    if (r) {
+                        matchedFKs.push(r);
+                    } else {
+                        matched = false;
+                    }
+                });
+                
+                if (matched) {
+                    fks = _.difference(fks, matchedFKs);
+                    var line = "FOREIGN KEY ";
+                    line += "(" + _.map(matchedFKs, function (k) { return self.getId(k.name, options); }).join(", ") + ") ";
+                    line += "REFERENCES " + self.getId(_pks[0]._parent.name, options);
+                    line += "(" + _.map(_pks, function (k) { return self.getId(k.name, options); }) + ")";
+                    lines.push(line);
+                }
+            }
+        });        
+        fks.forEach(function (fk) {
+            if (fk.referenceTo) {
+                lines.push("FOREIGN KEY (" + self.getId(fk.name, options) + ") REFERENCES " + self.getId(fk.referenceTo._parent.name, options) + "(" + self.getId(fk.referenceTo.name, options) + ")");
+            }
+        });        
+    };
+    
+    /**
+     * Write Entity
+     * @param {StringWriter} codeWriter
+     * @param {type.ERDEntity} elem
+     * @param {Object} options
+     */
+    DDLGenerator.prototype.writeEntity = function (codeWriter, elem, options) {
+        var self = this;
+        var lines = [],
+            primaryKeys = [],
+            uniques = [];
+        
+        //TODO Foreign keys
+        //TODO Drop table before create
+        //TODO Generate Comments
+        
+        // Table
+        codeWriter.writeLine("CREATE TABLE " + self.getId(elem.name, options) + " (");
+        codeWriter.indent();
+        
+        // Columns
+        elem.columns.forEach(function (col) {
+            if (col.primaryKey) {
+                primaryKeys.push(self.getId(col.name, options));
+            }
+            if (col.unique) {
+                uniques.push(self.getId(col.name, options));
+            }
+            lines.push(self.getColumnString(col, options));            
+        });
+        
+        // Primary Keys
+        if (primaryKeys.length > 0) {
+            lines.push("PRIMARY KEY (" + primaryKeys.join(", ") + ")");
+        }
+        
+        // Uniques
+        if (uniques.length > 0) {
+            lines.push("UNIQUE (" + uniques.join(", ") + ")");
+        }
+                                        
+        // Foreign Keys
+        self.generateForeignKeys(lines, elem, options);
+        
+        // Write lines
+        for (var i = 0, len = lines.length; i < len; i++) {
+            codeWriter.writeLine(lines[i] + (i < len - 1 ? "," : "" ));
+        }
+                
+        codeWriter.outdent();
+        codeWriter.writeLine(");");
+        codeWriter.writeLine();
+    };    
+    
+    /**
      * Generate codes from a given element
      * @param {type.Model} elem
      * @param {string} path
@@ -79,57 +232,19 @@ define(function (require, exports, module) {
     DDLGenerator.prototype.generate = function (elem, path, options) {
         var result = new $.Deferred(),
             self = this,
-            fullPath,
-            directory,
             codeWriter,
             file;
 
-        // Package (a directory with __init__.py)
-        if (elem instanceof type.UMLPackage) {
-            fullPath = path + "/" + elem.name;
-            directory = FileSystem.getDirectoryForPath(fullPath);
-            directory.create(function (err, stat) {
-                if (!err) {
-                    file = FileSystem.getFileForPath(fullPath + "/__init__.py");
-                    FileUtils.writeText(file, "", true)
-                        .done(function () {
-                            Async.doSequentially(
-                                elem.ownedElements,
-                                function (child) {
-                                    return self.generate(child, fullPath, options);
-                                },
-                                false
-                            ).then(result.resolve, result.reject);
-                        })
-                        .fail(function (err) {
-                            result.reject(err);
-                        });
-                } else {
-                    result.reject(err);
+        // DataModel
+        if (elem instanceof type.ERDDataModel) {
+            codeWriter = new CodeGenUtils.CodeWriter(this.getIndentString(options));
+            elem.ownedElements.forEach(function (e) {
+                if (e instanceof type.ERDEntity) {
+                    self.writeEntity(codeWriter, e, options);
                 }
             });
-
-        // Class
-        } else if (elem instanceof type.UMLClass || elem instanceof type.UMLInterface) {
-            fullPath = path + "/" + elem.name + ".py";
-            codeWriter = new CodeGenUtils.CodeWriter(this.getIndentString(options));
-            codeWriter.writeLine(options.installPath);
-            codeWriter.writeLine("#-*- coding: utf-8 -*-");
-            codeWriter.writeLine();
-            this.writeClass(codeWriter, elem, options);
-            file = FileSystem.getFileForPath(fullPath);
-            FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);
-
-        // Enum
-        } else if (elem instanceof type.UMLEnumeration) {
-            fullPath = path + "/" + elem.name + ".py";
-            codeWriter = new CodeGenUtils.CodeWriter(this.getIndentString(options));
-            codeWriter.writeLine(options.installPath);
-            codeWriter.writeLine("#-*- coding: utf-8 -*-");
-            codeWriter.writeLine();
-            this.writeEnum(codeWriter, elem, options);
-            file = FileSystem.getFileForPath(fullPath);
-            FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);
+            file = FileSystem.getFileForPath(path);
+            FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);            
 
         // Others (Nothing generated.)
         } else {
@@ -146,26 +261,8 @@ define(function (require, exports, module) {
      * @param {Object} options
      */
     function generate(baseModel, basePath, options) {
-        var result = new $.Deferred(),
-            directory,
-            fullPath;
         var generator = new DDLGenerator(baseModel, basePath);
-        fullPath = basePath + "/" + baseModel.name;
-        directory = FileSystem.getDirectoryForPath(fullPath);
-        directory.create(function (err, stat) {
-            if (!err) {
-                Async.doSequentially(
-                    baseModel.ownedElements,
-                    function (child) {
-                        return generator.generate(child, fullPath, options);
-                    },
-                    false
-                ).then(result.resolve, result.reject);
-            } else {
-                result.reject(err);
-            }
-        });
-        return result.promise();
+        return generator.generate(baseModel, basePath, options);
     }
 
     exports.generate = generate;
