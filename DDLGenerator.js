@@ -110,7 +110,7 @@ define(function (require, exports, module) {
         });
         return keys;
     };
-    
+
     /**
      * Return DDL column string
      * @param {type.ERDColumn} elem
@@ -126,17 +126,18 @@ define(function (require, exports, module) {
         return line;
     };
 
+
     /**
-     * Generate Foreign Keys
-     * @param {Array.<String>} lines
+     * Write Foreign Keys
+     * @param {StringWriter} codeWriter
      * @param {type.ERDEntity} elem
      * @param {Object} options
      */
-    DDLGenerator.prototype.generateForeignKeys = function (lines, elem, options) {
+    DDLGenerator.prototype.writeForeignKeys = function (codeWriter, elem, options) {
         var self = this,
             fks  = self.getForeignKeys(elem),
             ends = elem.getRelationshipEnds(true);
-        
+
         ends.forEach(function (end) {
             if (end.cardinality === "1") {
                 var _pks = self.getPrimaryKeys(end.reference);
@@ -150,44 +151,60 @@ define(function (require, exports, module) {
                         matched = false;
                     }
                 });
-                
+
                 if (matched) {
                     fks = _.difference(fks, matchedFKs);
-                    var line = "FOREIGN KEY ";
-                    line += "(" + _.map(matchedFKs, function (k) { return self.getId(k.name, options); }).join(", ") + ") ";
+                    var line = "ALTER TABLE ";
+                    line += self.getId(elem.name, options) + " ";
+                    line += "ADD FOREIGN KEY (" + _.map(matchedFKs, function (k) { return self.getId(k.name, options); }).join(", ") + ") ";
                     line += "REFERENCES " + self.getId(_pks[0]._parent.name, options);
-                    line += "(" + _.map(_pks, function (k) { return self.getId(k.name, options); }) + ")";
-                    lines.push(line);
+                    line += "(" + _.map(_pks, function (k) { return self.getId(k.name, options); }) + ");";
+                    codeWriter.writeLine(line);
                 }
             }
-        });        
+        });
         fks.forEach(function (fk) {
             if (fk.referenceTo) {
-                lines.push("FOREIGN KEY (" + self.getId(fk.name, options) + ") REFERENCES " + self.getId(fk.referenceTo._parent.name, options) + "(" + self.getId(fk.referenceTo.name, options) + ")");
+                var line = "ALTER TABLE ";
+                line += self.getId(elem.name, options) + " ";
+                line += "ADD FOREIGN KEY (" + self.getId(fk.name, options) + ") ";
+                line += "REFERENCES " + self.getId(fk.referenceTo._parent.name, options);
+                line += "(" + self.getId(fk.referenceTo.name, options) + ");";
+                codeWriter.writeLine(line);
             }
-        });        
+        });
     };
-    
+
     /**
-     * Write Entity
+     * Write Drop Table
      * @param {StringWriter} codeWriter
      * @param {type.ERDEntity} elem
      * @param {Object} options
      */
-    DDLGenerator.prototype.writeEntity = function (codeWriter, elem, options) {
+    DDLGenerator.prototype.writeDropTable = function (codeWriter, elem, options) {
+        if (options.dbms === "mysql") {
+            codeWriter.writeLine("DROP TABLE IF EXISTS " + this.getId(elem.name, options) + ";");
+        } else if (options.dbms === "oracle") {
+            codeWriter.writeLine("DROP TABLE " + this.getId(elem.name, options) + " CASCADE CONSTRAINTS;");
+        }
+    };
+
+    /**
+     * Write Table
+     * @param {StringWriter} codeWriter
+     * @param {type.ERDEntity} elem
+     * @param {Object} options
+     */
+    DDLGenerator.prototype.writeTable = function (codeWriter, elem, options) {
         var self = this;
         var lines = [],
             primaryKeys = [],
             uniques = [];
-        
-        //TODO Foreign keys
-        //TODO Drop table before create
-        //TODO Generate Comments
-        
+
         // Table
         codeWriter.writeLine("CREATE TABLE " + self.getId(elem.name, options) + " (");
         codeWriter.indent();
-        
+
         // Columns
         elem.columns.forEach(function (col) {
             if (col.primaryKey) {
@@ -196,32 +213,29 @@ define(function (require, exports, module) {
             if (col.unique) {
                 uniques.push(self.getId(col.name, options));
             }
-            lines.push(self.getColumnString(col, options));            
+            lines.push(self.getColumnString(col, options));
         });
-        
+
         // Primary Keys
         if (primaryKeys.length > 0) {
             lines.push("PRIMARY KEY (" + primaryKeys.join(", ") + ")");
         }
-        
+
         // Uniques
         if (uniques.length > 0) {
             lines.push("UNIQUE (" + uniques.join(", ") + ")");
         }
-                                        
-        // Foreign Keys
-        self.generateForeignKeys(lines, elem, options);
-        
+
         // Write lines
         for (var i = 0, len = lines.length; i < len; i++) {
             codeWriter.writeLine(lines[i] + (i < len - 1 ? "," : "" ));
         }
-                
+
         codeWriter.outdent();
         codeWriter.writeLine(");");
         codeWriter.writeLine();
-    };    
-    
+    };
+
     /**
      * Generate codes from a given element
      * @param {type.Model} elem
@@ -238,13 +252,38 @@ define(function (require, exports, module) {
         // DataModel
         if (elem instanceof type.ERDDataModel) {
             codeWriter = new CodeGenUtils.CodeWriter(this.getIndentString(options));
+
+            // Drop Tables
+            if (options.dropTable) {
+                if (options.dbms === "mysql") {
+                    codeWriter.writeLine("SET FOREIGN_KEY_CHECKS = 0;");
+                }
+                elem.ownedElements.forEach(function (e) {
+                    if (e instanceof type.ERDEntity) {
+                        self.writeDropTable(codeWriter, e, options);
+                    }
+                });
+                if (options.dbms === "mysql") {
+                    codeWriter.writeLine("SET FOREIGN_KEY_CHECKS = 1;");
+                }
+                codeWriter.writeLine();
+            }
+
+            // Tables
             elem.ownedElements.forEach(function (e) {
                 if (e instanceof type.ERDEntity) {
-                    self.writeEntity(codeWriter, e, options);
+                    self.writeTable(codeWriter, e, options);
+                }
+            });
+
+            // Foreign Keys
+            elem.ownedElements.forEach(function (e) {
+                if (e instanceof type.ERDEntity) {
+                    self.writeForeignKeys(codeWriter, e, options);
                 }
             });
             file = FileSystem.getFileForPath(path);
-            FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);            
+            FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);
 
         // Others (Nothing generated.)
         } else {

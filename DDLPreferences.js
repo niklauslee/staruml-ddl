@@ -45,6 +45,22 @@ define(function (require, exports, module) {
             type: "Check",
             default: true
         },
+        "ddl.gen.dropTable": {
+            text: "Drop Tables",
+            description: "Drop tables before create",
+            type: "Check",
+            default: true
+        },
+        "ddl.gen.dbms": {
+            text: "DBMS",
+            description: "Select a DBMS where generated DDL to be executed",
+            type: "Dropdown",
+            options: [
+                { value: "mysql",  text: "MySQL" },
+                { value: "oracle", text: "Oracle" }
+            ],
+            default: "mysql"
+        },
         "ddl.gen.useTab": {
             text: "Use Tab",
             description: "Use Tab for indentation instead of spaces.",
@@ -67,6 +83,8 @@ define(function (require, exports, module) {
         return {
             fileExtension    : PreferenceManager.get("ddl.gen.fileExtension"),
             quoteIdentifiers : PreferenceManager.get("ddl.gen.quoteIdentifiers"),
+            dropTable        : PreferenceManager.get("ddl.gen.dropTable"),
+            dbms             : PreferenceManager.get("ddl.gen.dbms"),
             useTab           : PreferenceManager.get("ddl.gen.useTab"),
             indentSpaces     : PreferenceManager.get("ddl.gen.indentSpaces")
         };
