@@ -66,7 +66,7 @@ CREATE TABLE entity1 (
 ALTER TABLE entity1 ADD FOREIGN KEY (fk1) REFERENCES entity2(col1);
 ```
 
-* If `Quote Identifiers` option is selected, all identifiers will be surrounded by character.
+* If `Quote Identifiers` option is selected, all identifiers will be surrounded by a backquote character.
 
 ```sql
 CREATE TABLE `entity1` (
@@ -97,3 +97,9 @@ DROP TABLE entity1 CASCADE CONSTRAINTS;`
 CREATE TABLE entity1 (...);
 ...
 ```
+
+
+Contributions
+-------------
+
+Any contributions are welcome. If you find a bug or have a suggestion, please post as an issue.
