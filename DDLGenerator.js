@@ -119,7 +119,12 @@ define(function (require, exports, module) {
      */
     DDLGenerator.prototype.getColumnString = function (elem, options) {
         var self = this;
-        var line = self.getId(elem.name, options) + " " + elem.getTypeString();
+        var line = self.getId(elem.name, options);
+        var _type = elem.getTypeString();
+        if (_type.trim().length === 0) {
+            _type ="INTEGER";
+        }
+        line += " " + _type;
         if (elem.primaryKey || !elem.nullable) {
             line += " NOT NULL";
         }
@@ -141,25 +146,27 @@ define(function (require, exports, module) {
         ends.forEach(function (end) {
             if (end.cardinality === "1") {
                 var _pks = self.getPrimaryKeys(end.reference);
-                var matched = true,
-                    matchedFKs = [];
-                _pks.forEach(function (pk) {
-                    var r = _.find(fks, function (k) { return k.referenceTo === pk; });
-                    if (r) {
-                        matchedFKs.push(r);
-                    } else {
-                        matched = false;
-                    }
-                });
+                if (_pks.length > 0) {
+                    var matched = true,
+                        matchedFKs = [];
+                    _pks.forEach(function (pk) {
+                        var r = _.find(fks, function (k) { return k.referenceTo === pk; });
+                        if (r) {
+                            matchedFKs.push(r);
+                        } else {
+                            matched = false;
+                        }
+                    });
 
-                if (matched) {
-                    fks = _.difference(fks, matchedFKs);
-                    var line = "ALTER TABLE ";
-                    line += self.getId(elem.name, options) + " ";
-                    line += "ADD FOREIGN KEY (" + _.map(matchedFKs, function (k) { return self.getId(k.name, options); }).join(", ") + ") ";
-                    line += "REFERENCES " + self.getId(_pks[0]._parent.name, options);
-                    line += "(" + _.map(_pks, function (k) { return self.getId(k.name, options); }) + ");";
-                    codeWriter.writeLine(line);
+                    if (matched) {
+                        fks = _.difference(fks, matchedFKs);
+                        var line = "ALTER TABLE ";
+                        line += self.getId(elem.name, options) + " ";
+                        line += "ADD FOREIGN KEY (" + _.map(matchedFKs, function (k) { return self.getId(k.name, options); }).join(", ") + ") ";
+                        line += "REFERENCES " + self.getId(_pks[0]._parent.name, options);
+                        line += "(" + _.map(_pks, function (k) { return self.getId(k.name, options); }) + ");";
+                        codeWriter.writeLine(line);
+                    }
                 }
             }
         });
