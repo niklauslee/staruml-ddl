@@ -66,8 +66,18 @@ CREATE TABLE entity1 (
 ALTER TABLE entity1 ADD FOREIGN KEY (fk1) REFERENCES entity2(col1);
 ```
 
-* If `Quote Identifiers` option is selected, all identifiers will be surrounded by a backquote character.
+* If `Quote Identifiers` option is selected, all identifiers will be surrounded by double quotes (or backquotes for MySQL).
 
+(__Oracle__ selected in `DBMS` option)
+```sql
+CREATE TABLE "entity1" (
+    "col1" INTEGER,
+    "col2" VARCHAR(20),
+    ...
+);
+```
+
+(__MySQL__ selected in `DBMS` option)
 ```sql
 CREATE TABLE `entity1` (
     `col1` INTEGER,
