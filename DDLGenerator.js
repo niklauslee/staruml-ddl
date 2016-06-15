@@ -76,7 +76,8 @@ define(function (require, exports, module) {
      */
     DDLGenerator.prototype.getId = function (id, options) {
         if (options.quoteIdentifiers) {
-            return "`" + id + "`";
+            var quote = options.dbms === "mysql" ? "`" : "\"";
+            return quote + id + quote;
         }
         return id;
     };
