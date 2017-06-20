@@ -196,6 +196,27 @@ define(function (require, exports, module) {
         }
     };
 
+    DDLGenerator.prototype.writeComments = function (codeWriter, elem, options) {
+        var self = this;
+		
+        if (options.dbms === "mysql") {
+        } else if (options.dbms === "oracle") {
+			
+			// Columns
+			elem.columns.forEach(function (col) {
+				var documentation = col.documentation;
+				if(!!documentation) {
+					documentation = "" + documentation;
+					codeWriter.writeLine("COMMENT ON COLUMN " + elem.name + "." + col.name + " IS '" + self.replaceAll(documentation, "'", "''") + "';");
+				}
+			});
+        }
+    };
+	
+	DDLGenerator.prototype.replaceAll = function(target, search, replacement) {
+		return target.split(search).join(replacement);
+	};
+	
     /**
      * Write Table
      * @param {StringWriter} codeWriter
@@ -289,6 +310,14 @@ define(function (require, exports, module) {
                     self.writeForeignKeys(codeWriter, e, options);
                 }
             });
+			
+			// Comments
+            elem.ownedElements.forEach(function (e) {
+                if (e instanceof type.ERDEntity) {
+                    self.writeComments(codeWriter, e, options);
+                }
+            });
+
             file = FileSystem.getFileForPath(path);
             FileUtils.writeText(file, codeWriter.getData(), true).then(result.resolve, result.reject);
 
