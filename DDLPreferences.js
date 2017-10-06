@@ -72,6 +72,18 @@ define(function (require, exports, module) {
             description: "Number of spaces for indentation.",
             type: "Number",
             default: 4
+        },
+        "ddl.gen.tablespace_data": {
+            text: "Table Space for DATA",
+            description: "Table Space name for tables DATA.",
+            type: "String",
+            default: ""
+        },
+        "ddl.gen.tablespace_index": {
+            text: "Table Space for INDEX",
+            description: "Table Space name for idexes.",
+            type: "String",
+            default: ""
         }
     };
 
@@ -86,7 +98,9 @@ define(function (require, exports, module) {
             dropTable        : PreferenceManager.get("ddl.gen.dropTable"),
             dbms             : PreferenceManager.get("ddl.gen.dbms"),
             useTab           : PreferenceManager.get("ddl.gen.useTab"),
-            indentSpaces     : PreferenceManager.get("ddl.gen.indentSpaces")
+            indentSpaces     : PreferenceManager.get("ddl.gen.indentSpaces"),
+			tablespaceData   : PreferenceManager.get("ddl.gen.tablespace_data"),
+			tablespaceIndex  : PreferenceManager.get("ddl.gen.tablespace_index")
         };
     }
 

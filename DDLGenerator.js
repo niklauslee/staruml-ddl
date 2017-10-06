@@ -229,8 +229,9 @@ define(function (require, exports, module) {
             primaryKeys = [],
             uniques = [];
 
+		var tablename = self.getId(elem.name, options);
         // Table
-        codeWriter.writeLine("CREATE TABLE " + self.getId(elem.name, options) + " (");
+        codeWriter.writeLine("CREATE TABLE " + tablename + " (");
         codeWriter.indent();
 
         // Columns
@@ -244,23 +245,27 @@ define(function (require, exports, module) {
             lines.push(self.getColumnString(col, options));
         });
 
-        // Primary Keys
-        if (primaryKeys.length > 0) {
-            lines.push("PRIMARY KEY (" + primaryKeys.join(", ") + ")");
-        }
-
-        // Uniques
-        if (uniques.length > 0) {
-            lines.push("UNIQUE (" + uniques.join(", ") + ")");
-        }
-
         // Write lines
         for (var i = 0, len = lines.length; i < len; i++) {
             codeWriter.writeLine(lines[i] + (i < len - 1 ? "," : "" ));
         }
 
         codeWriter.outdent();
-        codeWriter.writeLine(");");
+        codeWriter.writeLine(") tablespace " + options.tablespaceData + ";");
+        codeWriter.writeLine();
+		
+        // Primary Keys
+        if (primaryKeys.length > 0) {
+            codeWriter.writeLine("alter table " + tablename + " add primary key (" + primaryKeys.join(", ") + ") using index tablespace " + options.tablespaceIndex + ";");
+        }
+
+        codeWriter.writeLine();
+
+        // Uniques
+        if (uniques.length > 0) {
+            codeWriter.writeLine("alter table " + tablename + " add unique (" + uniques.join(", ") + ") using index tablespace " + options.tablespaceIndex + ";");
+        }
+
         codeWriter.writeLine();
     };
 
