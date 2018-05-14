@@ -1,7 +1,7 @@
-DDL Extension for StarUML 2
-===========================
+DDL Extension for StarUML
+=========================
 
-This extension for StarUML(http://staruml.io) support to generate DDL (Data Definition Language) from ERD. Install this extension from Extension Manager of StarUML.
+This extension for StarUML (http://staruml.io) support to generate DDL (Data Definition Language) from ERD. Install this extension from Extension Manager of StarUML.
 
 How to use
 ----------

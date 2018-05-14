@@ -1,0 +1,18 @@
+{
+  "menu": [
+    {
+      "id": "tools",
+      "submenu": [
+        {
+          "label": "DDL",
+          "id": "tools.ddl",
+          "submenu": [
+            { "label": "Generate Code...", "id": "tools.ddl.generate", "command": "ddl:generate" },
+            { "type": "separator" },
+            { "label": "Configure...", "id": "tools.ddl.configure", "command": "ddl:configure" }
+          ]
+        }
+      ]
+    }
+  ]
+}
