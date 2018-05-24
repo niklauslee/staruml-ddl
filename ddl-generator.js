@@ -22,7 +22,6 @@
  */
 
 const fs = require('fs')
-const _ = require('lodash')
 const codegen = require('./codegen-utils')
 
 /**
@@ -141,7 +140,7 @@ class DDLGenerator {
           var matched = true
           var matchedFKs = []
           _pks.forEach(function (pk) {
-            var r = _.find(fks, function (k) { return k.referenceTo === pk })
+            var r = fks.find(function (k) { return k.referenceTo === pk })
             if (r) {
               matchedFKs.push(r)
             } else {
@@ -150,12 +149,12 @@ class DDLGenerator {
           })
 
           if (matched) {
-            fks = _.difference(fks, matchedFKs)
+            fks = fks.filter(e => { return !matchedFKs.includes(e) })
             var line = 'ALTER TABLE '
             line += self.getId(elem.name, options) + ' '
-            line += 'ADD FOREIGN KEY (' + _.map(matchedFKs, function (k) { return self.getId(k.name, options) }).join(', ') + ') '
+            line += 'ADD FOREIGN KEY (' + matchedFKs.map(function (k) { return self.getId(k.name, options) }).join(', ') + ') '
             line += 'REFERENCES ' + self.getId(_pks[0]._parent.name, options)
-            line += '(' + _.map(_pks, function (k) { return self.getId(k.name, options) }) + ');'
+            line += '(' + _pks.map(function (k) { return self.getId(k.name, options) }) + ');'
             codeWriter.writeLine(line)
           }
         }
