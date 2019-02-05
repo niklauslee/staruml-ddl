@@ -49,6 +49,18 @@
       "description": "Number of spaces for indentation.",
       "type": "number",
       "default": 4
+    },
+    "ddl.gen.tablespaceData": {
+      "text": "Table Space for DATA",
+      "description": "Table Space name for tables DATA.",
+      "type": "string",
+      "default": ""
+    },
+    "ddl.gen.tablespaceIndex": {
+      "text": "Table Space for INDEX",
+      "description": "Table Space name for idexes.",
+      "type": "string",
+      "default": ""
     }
   }
 }
