@@ -119,6 +119,9 @@ class DDLGenerator {
     if (elem.primaryKey || !elem.nullable) {
       line += ' NOT NULL'
     }
+    if (elem.documentation && elem.documentation.trim().length > 0) {
+      line += ' COMMENT \'' + elem.documentation + '\''
+    }
     return line
   }
 
