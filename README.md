@@ -98,6 +98,24 @@ CREATE TABLE entity1 (...);
 ...
 ```
 
+* If `Generate Comments` option is selected, COMMENT statements will be included, both in columns and tables.
+```sql
+CREATE TABLE `entity1` (
+    `col1` INTEGER COMMENT 'Comment 1',
+    `col2` VARCHAR(20) COMMENT 'Comment 2',
+    ...
+) COMMENT='Table comment';
+```
+
+* If using MySQL, the selected engine will be added to every CREATE TABLE statement.
+```sql
+CREATE TABLE `entity1` (
+    `col1` INTEGER,
+    `col2` VARCHAR(20),
+    ...
+) ENGINE=InnoDB;
+```
+
 
 Contributions
 -------------

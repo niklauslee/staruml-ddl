@@ -49,6 +49,22 @@
       "description": "Number of spaces for indentation.",
       "type": "number",
       "default": 4
+    },
+    "ddl.gen.generateComments": {
+      "text": "Generate Comments",
+      "description": "Generate Comments",
+      "type": "check",
+      "default": true
+    },
+    "ddl.gen.mysqlEngine": {
+      "text": "MySQL Engine",
+      "description": "Select the MySQL Engine to use for each generated table",
+      "type": "dropdown",
+      "options": [
+        { "value": "InnoDB",  "text": "InnoDB" },
+        { "value": "MyISAM", "text": "MyISAM " }
+      ],
+      "default": "InnoDB"
     }
   }
 }

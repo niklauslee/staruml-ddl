@@ -119,6 +119,9 @@ class DDLGenerator {
     if (elem.primaryKey || !elem.nullable) {
       line += ' NOT NULL'
     }
+	if (options.generateComments && elem.documentation !== '') {
+		line += ' COMMENT \'' + elem.documentation + '\''
+	}
     return line
   }
 
@@ -197,6 +200,7 @@ class DDLGenerator {
     var lines = []
     var primaryKeys = []
     var uniques = []
+	var line = ''
 
     // Table
     codeWriter.writeLine('CREATE TABLE ' + self.getId(elem.name, options) + ' (')
@@ -229,7 +233,16 @@ class DDLGenerator {
     }
 
     codeWriter.outdent()
-    codeWriter.writeLine(');')
+	line = ')'
+	if (options.dbms === 'mysql') {
+		line += ' ENGINE=' + options.mySqlEngine
+	}
+	if (options.generateComments && elem.documentation !== '') {
+		line += ' COMMENT=\'' + elem.documentation + '\''
+	}
+	line += ';'
+	
+	codeWriter.writeLine(line)
     codeWriter.writeLine()
   }
 
