@@ -30,7 +30,9 @@ function getGenOptions () {
     dropTable: app.preferences.get('ddl.gen.dropTable'),
     dbms: app.preferences.get('ddl.gen.dbms'),
     useTab: app.preferences.get('ddl.gen.useTab'),
-    indentSpaces: app.preferences.get('ddl.gen.indentSpaces')
+    indentSpaces: app.preferences.get('ddl.gen.indentSpaces'),
+	generateComments: app.preferences.get('ddl.gen.generateComments'),
+	mySqlEngine: app.preferences.get('ddl.gen.mysqlEngine')
   }
 }
 
